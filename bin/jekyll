@@ -53,6 +53,7 @@ command :serve do |c|
     Jekyll::Commands::Serve.process(options)
   end
 end
+alias_command :server, :serve
 
 command :import do |c|
   c.syntax = 'jekyll import <platform> [options]'
@@ -65,6 +66,11 @@ command :import do |c|
   c.option '--host', 'Host address to use when migrating'
 
   c.action do |args, options|
-    Jekyll::Commands::Migrate.process(args.first, options)
+    begin
+      require 'jekyll-import'
+    rescue
+      abort "You must install the 'jekyll-import' gem before continuing."
+    end
+    Jekyll::Commands::Import.process(args.first, options)
   end
 end

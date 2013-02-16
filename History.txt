@@ -1,7 +1,11 @@
 == HEAD
   * Major Enhancements
     * Refactored jekyll commands into subcommands: build, serve, and migrate. (#690)
+    * Removed importers/migrators from main project, migrated to jekyll-import sub-gem (#793)
   * Minor Enhancements
+    * Aliased `jekyll server` to `jekyll serve`. (#792)
+    * Updated gem versions for Kramdown, Rake, Shoulda, Cucumber, and RedCarpet. (#744)
+    * Refactored jekyll subcommands into Jekyll::Commands submodule, which now contains them (#768)
     * Rescue from import errors in Wordpress.com migrator (#671)
     * Massively accelerate LSI performance (#664)
     * Truncate post slugs when importing from Tumblr (#496)
@@ -22,6 +26,8 @@
     * Bring site into master branch with better preview/deploy (#709)
     * Redesigned site (#583)
   * Development fixes
+    * Changed Ruby version for development to 1.9.3-p374 from p362 (#801)
+    * Including a link to the GitHub Ruby style guide in CONTRIBUTING.md (#806)
     * Added script/bootstrap (#776)
     * Running Simplecov under 2 conditions: ENV(COVERAGE)=true and with Ruby version
       of greater than 1.9 (#771)
