@@ -13,7 +13,7 @@ class TestPost < Test::Unit::TestCase
   context "A Post" do
     setup do
       clear_dest
-      stub(Jekyll).configuration { Jekyll::DEFAULTS }
+      stub(Jekyll).configuration { Jekyll::Configuration::DEFAULTS }
       @site = Site.new(Jekyll.configuration)
     end
 
@@ -95,7 +95,7 @@ class TestPost < Test::Unit::TestCase
         should "consume the embedded dashes" do
           @post.read_yaml(@source, @real_file)
 
-          assert_equal({"title" => "Foo --- Bar", "layout" => "post"}, @post.data)
+          assert_equal({"title" => "Foo --- Bar"}, @post.data)
           assert_equal "Triple the fun!", @post.content
         end
       end
@@ -137,18 +137,6 @@ class TestPost < Test::Unit::TestCase
           should "process the url correctly" do
             assert_equal "/:categories/:year/:month/:day/:title.html", @post.template
             assert_equal "/2013/2008/09/09/foo-bar.html", @post.url
-          end
-        end
-
-        context "with unspecified layout" do
-          setup do
-            file = '2013-01-12-no-layout.textile'
-            @post = setup_post(file)
-            @post.process(file)
-          end
-
-          should "default to 'post' layout" do
-            assert_equal "post", @post.data["layout"]
           end
         end
         
@@ -214,6 +202,18 @@ class TestPost < Test::Unit::TestCase
           end
         end
 
+        context "with ordinal style" do
+          setup do
+            @post.site.permalink_style = :ordinal
+            @post.process(@fake_file)
+          end
+
+          should "process the url correctly" do
+            assert_equal "/:categories/:year/:y_day/:title.html", @post.template
+            assert_equal "/2008/253/foo-bar.html", @post.url
+          end
+        end
+
         context "with custom date permalink" do
           setup do
             @post.site.permalink_style = '/:categories/:year/:i_month/:i_day/:title/'
@@ -222,6 +222,17 @@ class TestPost < Test::Unit::TestCase
 
           should "process the url correctly" do
             assert_equal "/2008/9/9/foo-bar/", @post.url
+          end
+        end
+
+        context "with custom abbreviated month date permalink" do
+          setup do
+            @post.site.permalink_style = '/:categories/:year/:short_month/:day/:title/'
+            @post.process(@fake_file)
+          end
+
+          should "process the url correctly" do
+            assert_equal "/2008/Sep/09/foo-bar/", @post.url
           end
         end
 
@@ -252,12 +263,76 @@ class TestPost < Test::Unit::TestCase
 
         assert_equal "<h1>{{ page.title }}</h1>\n<p>Best <strong>post</strong> ever</p>", @post.content
       end
+
+      context "#excerpt" do
+        setup do
+          file = "2013-01-02-post-excerpt.markdown"
+          @post.process(file)
+          @post.read_yaml(@source, file)
+          @post.transform
+        end
+
+        should "return first paragraph by default" do
+          assert @post.excerpt.include?("First paragraph"), "contains first paragraph"
+          assert !@post.excerpt.include?("Second paragraph"), "does not contains second paragraph"
+          assert !@post.excerpt.include?("Third paragraph"), "does not contains third paragraph"
+        end
+
+        should "correctly resolve link references" do
+          assert @post.excerpt.include?("www.jekyllrb.com"), "contains referenced link URL"
+        end
+
+        should "return rendered HTML" do
+          assert_equal "<p>First paragraph with <a href='http://www.jekyllrb.com/'>link ref</a>.</p>",
+                       @post.excerpt
+        end
+
+        context "with excerpt_separator setting" do
+          setup do
+            file = "2013-01-02-post-excerpt.markdown"
+
+            @post.site.config['excerpt_separator'] = "\n---\n"
+
+            @post.process(file)
+            @post.read_yaml(@source, file)
+            @post.transform
+          end
+
+          should "respect given separator" do
+            assert @post.excerpt.include?("First paragraph"), "contains first paragraph"
+            assert @post.excerpt.include?("Second paragraph"), "contains second paragraph"
+            assert !@post.excerpt.include?("Third paragraph"), "does not contains third paragraph"
+          end
+
+          should "replace separator with new-lines" do
+            assert !@post.excerpt.include?("---"), "does not contains separator"
+          end
+        end
+
+        context "with custom excerpt" do
+          setup do
+            file = "2013-04-11-custom-excerpt.markdown"
+            @post = setup_post(file)
+            do_render(@post)
+          end
+
+          should "use custom excerpt" do
+            assert_equal("I can set a custom excerpt", @post.excerpt)
+          end
+
+          should "expose custom excerpt to liquid" do
+            assert @post.content.include?("I can use the excerpt: <quote>I can set a custom excerpt</quote>"), "Exposes incorrect excerpt to liquid."
+          end
+
+        end
+
+      end
     end
 
     context "when in a site" do
       setup do
         clear_dest
-        stub(Jekyll).configuration { Jekyll::DEFAULTS }
+        stub(Jekyll).configuration { Jekyll::Configuration::DEFAULTS }
         @site = Site.new(Jekyll.configuration)
         @site.posts = [setup_post('2008-02-02-published.textile'),
                        setup_post('2009-01-27-categories.textile')]
@@ -450,7 +525,7 @@ class TestPost < Test::Unit::TestCase
   
   context "converter file extension settings" do
     setup do
-      stub(Jekyll).configuration { Jekyll::DEFAULTS }
+      stub(Jekyll).configuration { Jekyll::Configuration::DEFAULTS }
       @site = Site.new(Jekyll.configuration)
     end
     
